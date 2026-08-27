@@ -257,6 +257,13 @@ function isValidPhone(v){
   const digits = t.replace(/[^\d]/g,'');
   return digits.length >= 8 && digits.length <= 15 && /^[\d\s+\-()]+$/.test(t);
 }
+// Canonical identity key: strips formatting so "+44 7700 900123" and
+// "07700900123" collapse to the same person. Used everywhere identity
+// matters (membership, organizer checks, rate limits) instead of name,
+// which anyone can vary between sessions.
+function normalizePhone(v){
+  return (v || '').replace(/[^\d]/g,'');
+}
 // Guards against corrupted or tampered entries in shared storage before they
 // ever reach the UI — malformed rows are dropped rather than crashing the app.
 function isValidGroupShape(g){
@@ -264,8 +271,10 @@ function isValidGroupShape(g){
     && typeof g.id === 'string'
     && typeof g.venueId === 'string'
     && typeof g.organizerName === 'string'
+    && typeof g.organizerPhoneKey === 'string'
     && typeof g.organizerWhatsapp === 'string'
     && Array.isArray(g.members)
+    && g.members.every(m=>m && typeof m.name === 'string' && typeof m.phoneKey === 'string')
     && typeof g.capacity === 'number' && g.capacity > 0 && g.capacity <= 20;
 }
 // A slot disappears from listings once its organizer cancels it, or once
@@ -295,6 +304,22 @@ function App(){
   const [toastMsg, showToast] = useToast();
 
   useEffect(()=>{ init(); }, []);
+
+  // Other people's posts/joins land in shared storage but this tab has no
+  // way to know unless it asks again. Poll while logged in, and refresh
+  // immediately whenever the tab comes back into focus.
+  useEffect(()=>{
+    if(!profile) return;
+    const interval = setInterval(()=>{ loadGroups(); }, 6000);
+    const onFocus = ()=>{ loadGroups(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return ()=>{
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [profile]);
 
   async function init(){
     try{
@@ -340,7 +365,27 @@ function App(){
   }
 
   async function handleLogin(name, whatsapp){
-    const p = {name: name.trim(), whatsapp: whatsapp.trim()};
+    const trimmedName = name.trim();
+    const phoneKey = normalizePhone(whatsapp);
+
+    // Shared registry of phoneKey -> first name used with it. Stops one
+    // number from registering under several names to get around the
+    // per-person limits below (extra open slots, repeat joins, etc).
+    try{
+      const reg = await window.storage.get('identities', true);
+      const identities = reg && reg.value ? JSON.parse(reg.value) : {};
+      const existing = identities[phoneKey];
+      if(existing && existing.toLowerCase() !== trimmedName.toLowerCase()){
+        showToast(`That number's already registered as "${existing}" — log in with that name`);
+        return;
+      }
+      if(!existing){
+        identities[phoneKey] = trimmedName;
+        await window.storage.set('identities', JSON.stringify(identities), true);
+      }
+    }catch(e){ /* registry unavailable — join-time phoneKey checks below still hold */ }
+
+    const p = {name: trimmedName, whatsapp: whatsapp.trim(), phoneKey};
     try{
       await window.storage.set('profile', JSON.stringify(p), false);
     }catch(e){ /* continue anyway, keep in memory */ }
@@ -357,19 +402,19 @@ function App(){
       return;
     }
     const result = await mutateGroups(latest=>{
-      // Rate limit: caps how many open slots any one person can flood the
-      // board with at once.
+      // Rate limit: caps how many open slots any one person (by phone,
+      // not display name) can flood the board with at once.
       const activeMine = latest.filter(g=>
-        g.organizerName === profile.name && isVisibleGroup(g) && g.members.length < g.capacity
+        g.organizerPhoneKey === profile.phoneKey && isVisibleGroup(g) && g.members.length < g.capacity
       );
       if(activeMine.length >= 3){
         showToast("You already have 3 open slots posted — fill or cancel one first");
         return null;
       }
-      // Duplicate-post guard: same person, same venue, same date/time.
+      // Duplicate-post guard: same person (by phone), same venue, same date/time.
       const dupe = latest.find(g=>
         g.venueId === venueId && g.date === data.date && g.time === data.time &&
-        g.organizerName === profile.name && isVisibleGroup(g)
+        g.organizerPhoneKey === profile.phoneKey && isVisibleGroup(g)
       );
       if(dupe){
         showToast("You've already posted a slot for this time");
@@ -382,8 +427,9 @@ function App(){
         time: data.time,
         capacity: parseInt(data.capacity, 10),
         organizerName: profile.name,
+        organizerPhoneKey: profile.phoneKey,
         organizerWhatsapp: data.whatsapp.trim(),
-        members: [profile.name],
+        members: [{name: profile.name, phoneKey: profile.phoneKey, whatsapp: profile.whatsapp}],
         createdAt: Date.now(),
         cancelled: false,
         reports: [],
@@ -400,10 +446,10 @@ function App(){
     const result = await mutateGroups(latest=>{
       return latest.map(g=>{
         if(g.id !== groupId || !isVisibleGroup(g)) return g;
-        const already = g.members.some(m=>m.toLowerCase() === profile.name.toLowerCase());
+        const already = g.members.some(m=>m.phoneKey === profile.phoneKey);
         if(already) return g;
         if(g.members.length >= g.capacity) return g;
-        return {...g, members:[...g.members, profile.name]};
+        return {...g, members:[...g.members, {name: profile.name, phoneKey: profile.phoneKey, whatsapp: profile.whatsapp}]};
       });
     });
     if(result){
@@ -419,14 +465,14 @@ function App(){
   async function leaveGroup(groupId){
     const result = await mutateGroups(latest=>latest.map(g=>{
       if(g.id !== groupId) return g;
-      return {...g, members: g.members.filter(m=>m.toLowerCase() !== profile.name.toLowerCase())};
+      return {...g, members: g.members.filter(m=>m.phoneKey !== profile.phoneKey)};
     }));
     if(result) showToast("Left the slot");
   }
 
   async function cancelGroup(groupId){
     const result = await mutateGroups(latest=>latest.map(g=>
-      g.id === groupId && g.organizerName === profile.name ? {...g, cancelled:true} : g
+      g.id === groupId && g.organizerPhoneKey === profile.phoneKey ? {...g, cancelled:true} : g
     ));
     if(result) showToast("Slot cancelled");
   }
@@ -435,8 +481,8 @@ function App(){
     const result = await mutateGroups(latest=>latest.map(g=>{
       if(g.id !== groupId) return g;
       const reports = g.reports || [];
-      if(reports.some(r=>r.toLowerCase() === profile.name.toLowerCase())) return g;
-      return {...g, reports:[...reports, profile.name]};
+      if(reports.some(r=>r.phoneKey === profile.phoneKey)) return g;
+      return {...g, reports:[...reports, {name: profile.name, phoneKey: profile.phoneKey}]};
     }));
     if(result) showToast("Thanks — flagged for review");
   }
@@ -469,7 +515,7 @@ function App(){
             {VENUES.map(v=>{
               const count = groups.filter(g=>g.venueId===v.id && isVisibleGroup(g) && g.members.length < g.capacity).length;
               return (
-                <button key={v.id} className="venue-card" onClick={()=>setActiveVenue(v)}>
+                <button key={v.id} className="venue-card" onClick={()=>{setActiveVenue(v); loadGroups();}}>
                   <div className="venue-name">{v.name}</div>
                   <div className="venue-area">{v.area}</div>
                   <div className={"venue-count" + (count===0 ? " zero" : "")}>
@@ -509,6 +555,7 @@ function App(){
               key={g.id}
               group={g}
               profile={profile}
+              showToast={showToast}
               onJoin={()=>joinGroup(g.id)}
               onLeave={()=>leaveGroup(g.id)}
               onCancel={()=>cancelGroup(g.id)}
@@ -621,11 +668,50 @@ function NewGroupForm({onCancel, onSubmit}){
   );
 }
 
-function GroupCard({group, profile, onJoin, onLeave, onCancel, onReport}){
-  const isMember = group.members.some(m=>m.toLowerCase() === profile.name.toLowerCase());
+function WhatsappReveal({group, isOrganizer, showToast}){
+  const roster = group.members.map((m,i)=>`${i+1}. ${m.name} — ${m.whatsapp || group.organizerWhatsapp}`).join('\n');
+  const rosterText = `CourtShare group — ${group.date} ${group.time}\n${roster}`;
+
+  function copyRoster(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(rosterText)
+        .then(()=>showToast("Copied — paste it when you create the group"))
+        .catch(()=>showToast("Couldn't copy — select the text manually"));
+    }else{
+      showToast("Couldn't copy — select the text manually");
+    }
+  }
+
+  return (
+    <div className="whatsapp-reveal">
+      <div className="label">Group is full — everyone's number below</div>
+      {group.members.map((m,i)=>(
+        <div key={i} className="number" style={{fontSize:'13.5px', fontWeight:500, marginBottom:'2px'}}>
+          {m.name}{m.whatsapp ? ` — ${m.whatsapp}` : ''}
+        </div>
+      ))}
+      <div style={{display:'flex', gap:'10px', flexWrap:'wrap', marginTop:'10px'}}>
+        <button className="btn ghost small" style={{borderColor:'var(--in-green)', color:'var(--in-green)'}} onClick={copyRoster}>
+          Copy everyone's numbers
+        </button>
+        <a href={"https://wa.me/" + group.organizerWhatsapp.replace(/[^0-9]/g,'')} target="_blank" rel="noopener noreferrer">
+          Message the organizer &rarr;
+        </a>
+      </div>
+      {isOrganizer && (
+        <div className="hint" style={{color:'#2f6b52', marginTop:'10px'}}>
+          You posted this slot — the fastest way to start the chat: open WhatsApp, create a new group, and add these numbers. WhatsApp doesn't let apps do that step for you.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupCard({group, profile, showToast, onJoin, onLeave, onCancel, onReport}){
+  const isMember = group.members.some(m=>m.phoneKey === profile.phoneKey);
   const isFull = group.members.length >= group.capacity;
-  const isOrganizer = group.organizerName === profile.name;
-  const alreadyReported = (group.reports || []).some(r=>r.toLowerCase() === profile.name.toLowerCase());
+  const isOrganizer = group.organizerPhoneKey === profile.phoneKey;
+  const alreadyReported = (group.reports || []).some(r=>r.phoneKey === profile.phoneKey);
 
   const dateLabel = group.date ? new Date(group.date + 'T00:00:00').toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}) : '';
 
@@ -648,15 +734,11 @@ function GroupCard({group, profile, onJoin, onLeave, onCancel, onReport}){
       </div>
 
       <div className="members-line">
-        <b>{group.members.length}/{group.capacity}</b> joined: {group.members.join(', ')}
+        <b>{group.members.length}/{group.capacity}</b> joined: {group.members.map(m=>m.name).join(', ')}
       </div>
 
       {isFull && isMember && (
-        <div className="whatsapp-reveal">
-          <div className="label">Group is full — WhatsApp unlocked</div>
-          <div className="number">{group.organizerWhatsapp}</div>
-          <a href={"https://wa.me/" + group.organizerWhatsapp.replace(/[^0-9]/g,'')} target="_blank" rel="noopener noreferrer">Message on WhatsApp &rarr;</a>
-        </div>
+        <WhatsappReveal group={group} isOrganizer={isOrganizer} showToast={showToast} />
       )}
 
       {isFull && !isMember && (
