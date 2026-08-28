@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CourtShare London</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap');
+
+:root{
+  --court-teal:#0B4F4A;
+  --court-teal-dark:#083935;
+  --line-white:#FFFFFF;
+  --cork-cream:#F2E8D5;
+  --card-cream:#FBF6EA;
+  --ink:#16211F;
+  --ink-soft:#4B564F;
+  --in-green:#4F9D69;
+  --in-green-bg:#E4F1E7;
+  --let-amber:#E0A458;
+  --let-amber-bg:#FBF0DF;
+  --out-clay:#C1502E;
+  --out-clay-bg:#F7E4DD;
+  --rule:#D9CDAF;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--cork-cream);
+  color:var(--ink);
+  min-height:100vh;
+}
+
+.app{max-width:760px; margin:0 auto; padding:0 20px 60px;}
+
+header{
+  background:var(--court-teal);
+  color:var(--line-white);
+  padding:28px 20px 24px;
+  margin:0 -20px 28px;
+  position:relative;
+  overflow:hidden;
+}
+header::after{
+  content:"";
+  position:absolute; left:0; right:0; bottom:14px;
+  height:0;
+  border-bottom:2px dashed rgba(255,255,255,0.28);
+}
+.brand{
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;
+  font-size:26px;
+  letter-spacing:-0.02em;
+  display:flex; align-items:baseline; gap:8px;
+}
+.brand .dot{color:var(--let-amber); font-size:20px;}
+.tagline{
+  font-size:13.5px;
+  color:rgba(255,255,255,0.75);
+  margin-top:6px;
+  max-width:440px;
+  line-height:1.5;
+}
+.who{
+  position:absolute; top:26px; right:20px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color:rgba(255,255,255,0.85);
+  text-align:right;
+}
+.who button{
+  background:none; border:none; color:var(--let-amber);
+  font-family:'JetBrains Mono',monospace; font-size:11.5px;
+  cursor:pointer; text-decoration:underline; padding:0; margin-top:2px;
+}
+
+.login-card{
+  background:var(--card-cream);
+  border:1px solid var(--rule);
+  border-radius:14px;
+  padding:32px 28px;
+  max-width:400px;
+  margin:40px auto;
+}
+.login-card h2{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:20px; margin-bottom:6px;
+}
+.login-card p{
+  font-size:13.5px; color:var(--ink-soft); line-height:1.5; margin-bottom:20px;
+}
+label{
+  display:block; font-size:11.5px; font-weight:600; text-transform:uppercase;
+  letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px; margin-top:14px;
+}
+label:first-of-type{margin-top:0;}
+input, select{
+  width:100%; padding:11px 12px; border:1px solid var(--rule); border-radius:8px;
+  font-family:'Inter',sans-serif; font-size:14.5px; background:#fff; color:var(--ink);
+}
+input:focus, select:focus, button:focus-visible{
+  outline:2px solid var(--court-teal); outline-offset:1px;
+}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  background:var(--court-teal); color:#fff; border:none; border-radius:8px;
+  padding:12px 18px; font-family:'Inter',sans-serif; font-weight:600; font-size:14px;
+  cursor:pointer; margin-top:20px; width:100%;
+  transition:background .15s;
+}
+.btn:hover{background:var(--court-teal-dark);}
+.btn.ghost{
+  background:transparent; color:var(--court-teal); border:1.5px solid var(--court-teal);
+  width:auto; margin-top:0; padding:9px 14px; font-size:13px;
+}
+.btn.small{width:auto; padding:9px 16px; font-size:13.5px; margin-top:14px;}
+.btn:disabled{opacity:0.45; cursor:not-allowed;}
+.btn.danger{
+  background:transparent; color:var(--out-clay); border:1.5px solid var(--out-clay);
+  width:auto; margin-top:0; padding:9px 14px; font-size:13px;
+}
+.btn.danger:hover{background:var(--out-clay-bg);}
+
+.section-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--ink-soft); margin:30px 0 12px; display:flex; align-items:center; gap:10px;
+}
+.section-label::after{content:""; flex:1; border-top:1px dashed var(--rule);}
+
+.venue-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.venue-card{
+  background:var(--card-cream); border:1px solid var(--rule); border-radius:12px;
+  padding:16px; cursor:pointer; text-align:left; transition:border-color .15s, transform .1s;
+}
+.venue-card:hover{border-color:var(--court-teal); transform:translateY(-1px);}
+.venue-name{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px;}
+.venue-area{font-size:12px; color:var(--ink-soft); margin-top:3px;}
+
+.group-card{
+  background:var(--card-cream); border:1px solid var(--rule); border-radius:12px;
+  padding:18px; margin-bottom:14px;
+}
+.group-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.group-when{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px;}
+.group-org{font-size:12px; color:var(--ink-soft); margin-top:3px;}
+.status-pill{
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+  padding:4px 9px; border-radius:20px; white-space:nowrap;
+}
+.status-pill.let{background:var(--let-amber-bg); color:#8a5a1f;}
+.status-pill.full{background:var(--in-green-bg); color:var(--in-green);}
+
+.shuttle-row{display:flex; gap:5px; margin:14px 0 12px;}
+.shuttle{width:15px; height:15px; border-radius:50%; border:2px solid var(--court-teal);}
+.shuttle.filled{background:var(--court-teal);}
+
+.members-line{font-size:12.5px; color:var(--ink-soft); margin-bottom:12px;}
+.members-line b{color:var(--ink); font-weight:600;}
+
+.whatsapp-reveal{
+  background:var(--in-green-bg); border:1px dashed var(--in-green);
+  border-radius:10px; padding:14px; margin-top:6px;
+}
+.whatsapp-reveal .label{
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+  color:var(--in-green); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;
+}
+.whatsapp-reveal a{
+  display:inline-block; margin-top:10px; font-size:13px; font-weight:600; color:var(--in-green);
+  text-decoration:none; border-bottom:1.5px solid var(--in-green);
+}
+
+.group-actions{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;}
+.empty-state{text-align:center; padding:36px 16px; color:var(--ink-soft); font-size:13.5px;}
+
+.new-group-card{
+  background:var(--court-teal); color:#fff; border-radius:12px; padding:20px; margin-bottom:20px;
+}
+.new-group-card h3{font-family:'Space Grotesk',sans-serif; font-size:16px; margin-bottom:14px;}
+.new-group-card label{color:rgba(255,255,255,0.75);}
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.hint{font-size:11.5px; color:rgba(255,255,255,0.6); margin-top:6px; line-height:1.4;}
+
+.toast{
+  position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+  background:var(--ink); color:#fff; padding:10px 18px; border-radius:8px;
+  font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; text-align:center;
+}
+.toast.show{opacity:1;}
+
+.back-link{
+  background:none; border:none; color:var(--court-teal); font-size:13px; font-weight:600;
+  cursor:pointer; padding:0; margin-bottom:4px;
+}
+.field-error{font-size:11.5px; color:var(--out-clay); margin-top:6px;}
+.config-error{
+  background:var(--out-clay-bg); color:#8a2f16; border:1px solid var(--out-clay);
+  border-radius:10px; padding:16px; margin:20px; font-size:13.5px; line-height:1.6;
+}
+
+@media (max-width:480px){
+  .venue-grid{grid-template-columns:1fr;}
+  .grid-2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+<script type="text/babel">
+const {useState, useEffect, useCallback, useRef} = React;
+
+// ============================================================
+// CONFIG — fill these in from Supabase Studio -> Project Settings -> API
+// ============================================================
+const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+
+const configured = !SUPABASE_URL.includes("YOUR-PROJECT") && !SUPABASE_ANON_KEY.includes("YOUR-ANON");
+const sb = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+function isValidName(v){
+  const t = (v || '').trim();
+  return t.length >= 2 && t.length <= 40;
+}
+function normalizePhone(v){
+  let t = (v || '').trim().replace(/[\s()-]/g,'');
+  if(t.startsWith('0')) t = '+44' + t.slice(1);
+  if(!t.startsWith('+')) t = '+' + t;
+  return t;
+}
+function isValidPhone(v){
+  const digits = normalizePhone(v).replace(/[^\d]/g,'');
+  return digits.length >= 8 && digits.length <= 15;
+}
+
+function useToast(){
+  const [msg, setMsg] = useState(null);
+  const show = useCallback((text)=>{
+    setMsg(text);
+    setTimeout(()=>setMsg(null), 2600);
+  },[]);
+  return [msg, show];
+}
+
+function App(){
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [venues, setVenues] = useState([]);
+  const [activeVenue, setActiveVenue] = useState(null);
+  const [slots, setSlots] = useState([]);
+  const [showNewGroup, setShowNewGroup] = useState(false);
+  const [toastMsg, showToast] = useToast();
+
+  useEffect(()=>{ if(configured) init(); else setLoading(false); }, []);
+
+  async function init(){
+    const { data: { session: s } } = await sb.auth.getSession();
+    setSession(s);
+    if(s) await loadProfile(s.user.id);
+    const { data: v } = await sb.from('venues').select('*').order('name');
+    setVenues(v || []);
+    setLoading(false);
+
+    sb.auth.onAuthStateChange((_event, s2)=>{
+      setSession(s2);
+      if(s2) loadProfile(s2.user.id); else setProfile(null);
+    });
+  }
+
+  async function loadProfile(userId){
+    const { data } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+    setProfile(data || null);
+  }
+
+  async function loadBoard(venueId){
+    const { data, error } = await sb.rpc('get_venue_board', { p_venue_id: venueId });
+    if(error){ showToast(error.message); return; }
+    setSlots(data || []);
+  }
+
+  useEffect(()=>{
+    if(!configured || !activeVenue) return;
+    loadBoard(activeVenue.id);
+    const channel = sb.channel('venue-' + activeVenue.id)
+      .on('postgres_changes', {event:'*', schema:'public', table:'slots'}, ()=>loadBoard(activeVenue.id))
+      .on('postgres_changes', {event:'*', schema:'public', table:'slot_members'}, ()=>loadBoard(activeVenue.id))
+      .on('postgres_changes', {event:'*', schema:'public', table:'slot_reports'}, ()=>loadBoard(activeVenue.id))
+      .subscribe();
+    return ()=>{ sb.removeChannel(channel); };
+  }, [activeVenue]);
+
+  async function handleSetName(name){
+    const { error } = await sb.from('profiles').upsert({ id: session.user.id, name: name.trim() });
+    if(error){ showToast(error.message); return; }
+    await loadProfile(session.user.id);
+  }
+
+  async function handleLogout(){
+    await sb.auth.signOut();
+    setProfile(null);
+    setActiveVenue(null);
+  }
+
+  async function createSlot(venueId, data){
+    const { error } = await sb.from('slots').insert({
+      venue_id: venueId,
+      date: data.date,
+      time: data.time,
+      capacity: parseInt(data.capacity, 10),
+      organizer_id: session.user.id,
+    });
+    if(error){ showToast(error.message); return; }
+    setShowNewGroup(false);
+    showToast("Slot posted — invite people in");
+    loadBoard(venueId);
+  }
+
+  async function joinSlot(slotId){
+    const { error } = await sb.from('slot_members').insert({ slot_id: slotId, member_id: session.user.id });
+    if(error){
+      showToast(error.code === '23505' ? "You're already in this slot" : error.message);
+      return;
+    }
+    showToast("You're in");
+    loadBoard(activeVenue.id);
+  }
+
+  async function leaveSlot(slotId){
+    const { error } = await sb.from('slot_members').delete()
+      .eq('slot_id', slotId).eq('member_id', session.user.id);
+    if(error){ showToast(error.message); return; }
+    showToast("Left the slot");
+    loadBoard(activeVenue.id);
+  }
+
+  async function cancelSlot(slotId){
+    const { error } = await sb.from('slots').update({ cancelled: true })
+      .eq('id', slotId).eq('organizer_id', session.user.id);
+    if(error){ showToast(error.message); return; }
+    showToast("Slot cancelled");
+    loadBoard(activeVenue.id);
+  }
+
+  async function reportSlot(slotId){
+    const { error } = await sb.from('slot_reports').insert({ slot_id: slotId, reporter_id: session.user.id });
+    if(error){
+      showToast(error.code === '23505' ? "Already reported" : error.message);
+      return;
+    }
+    showToast("Thanks — flagged for review");
+    loadBoard(activeVenue.id);
+  }
+
+  if(!configured){
+    return (
+      <div className="app">
+        <Header session={null} onLogout={handleLogout} />
+        <div className="config-error">
+          <b>Not configured yet.</b> Open this file and set <code>SUPABASE_URL</code> and{' '}
+          <code>SUPABASE_ANON_KEY</code> near the top of the script to your project's values
+          (Supabase Studio -&gt; Project Settings -&gt; API), then reload.
+        </div>
+      </div>
+    );
+  }
+
+  if(loading){
+    return <div className="app"><Header session={null} onLogout={handleLogout} /></div>;
+  }
+
+  if(!session){
+    return (
+      <div className="app">
+        <Header session={null} onLogout={handleLogout} />
+        <PhoneLogin sb={sb} showToast={showToast} />
+      </div>
+    );
+  }
+
+  if(!profile){
+    return (
+      <div className="app">
+        <Header session={session} onLogout={handleLogout} />
+        <NameStep onSubmit={handleSetName} />
+      </div>
+    );
+  }
+
+  const venueSlots = activeVenue ? slots : [];
+
+  return (
+    <div className="app">
+      <Header session={session} profile={profile} onLogout={handleLogout} />
+
+      {!activeVenue && (
+        <React.Fragment>
+          <div className="section-label">Pick a venue</div>
+          <div className="venue-grid">
+            {venues.map(v=>(
+              <button key={v.id} className="venue-card" onClick={()=>setActiveVenue(v)}>
+                <div className="venue-name">{v.name}</div>
+                <div className="venue-area">{v.area}</div>
+              </button>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
+
+      {activeVenue && (
+        <React.Fragment>
+          <button className="back-link" onClick={()=>{setActiveVenue(null); setShowNewGroup(false);}}>&larr; All venues</button>
+          <div className="section-label">{activeVenue.name}</div>
+
+          {!showNewGroup && (
+            <button className="btn ghost" style={{marginBottom:'18px'}} onClick={()=>setShowNewGroup(true)}>
+              + Post a slot here
+            </button>
+          )}
+
+          {showNewGroup && (
+            <NewGroupForm
+              onCancel={()=>setShowNewGroup(false)}
+              onSubmit={(data)=>createSlot(activeVenue.id, data)}
+            />
+          )}
+
+          {venueSlots.length===0 && !showNewGroup && (
+            <div className="empty-state">No slots posted for this venue yet. Be the first — post one above.</div>
+          )}
+
+          {venueSlots.map(s=>(
+            <GroupCard
+              key={s.id}
+              slot={s}
+              onJoin={()=>joinSlot(s.id)}
+              onLeave={()=>leaveSlot(s.id)}
+              onCancel={()=>cancelSlot(s.id)}
+              onReport={()=>reportSlot(s.id)}
+            />
+          ))}
+        </React.Fragment>
+      )}
+
+      <div className={"toast" + (toastMsg ? " show" : "")}>{toastMsg}</div>
+    </div>
+  );
+}
+
+function Header({session, profile, onLogout}){
+  return (
+    <header>
+      <div className="brand"><span>CourtShare</span><span className="dot">&#9679;</span><span>London</span></div>
+      <div className="tagline">Booked a court with spots going spare? Post it. Looking for a game? Join one. Once a slot fills, everyone gets each other's WhatsApp number.</div>
+      {session && profile && (
+        <div className="who">
+          {profile.name}
+          <br/>
+          <button onClick={onLogout}>log out</button>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function PhoneLogin({sb, showToast}){
+  const [step, setStep] = useState('phone');
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [touched, setTouched] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const phoneOk = isValidPhone(phone);
+
+  async function sendCode(){
+    setTouched(true);
+    if(!phoneOk) return;
+    setSending(true);
+    const { error } = await sb.auth.signInWithOtp({ phone: normalizePhone(phone) });
+    setSending(false);
+    if(error){ showToast(error.message); return; }
+    showToast("Code sent");
+    setStep('otp');
+  }
+
+  async function verifyCode(){
+    if(!code.trim()) return;
+    setSending(true);
+    const { error } = await sb.auth.verifyOtp({ phone: normalizePhone(phone), token: code.trim(), type: 'sms' });
+    setSending(false);
+    if(error){ showToast(error.message); return; }
+  }
+
+  return (
+    <div className="login-card">
+      {step === 'phone' && (
+        <React.Fragment>
+          <h2>Sign in to join</h2>
+          <p>Enter your WhatsApp number -- we'll text you a one-time code. This is the number other players will see when a slot fills.</p>
+          <label>Your WhatsApp number</label>
+          <input value={phone} maxLength={20} onChange={e=>setPhone(e.target.value)} placeholder="e.g. +44 7xxx xxxxxx or 07xxx xxxxxx" />
+          {touched && !phoneOk && <div className="field-error">Enter a valid number with country code.</div>}
+          <button className="btn" onClick={sendCode} disabled={sending}>{sending ? 'Sending...' : 'Send code'}</button>
+        </React.Fragment>
+      )}
+      {step === 'otp' && (
+        <React.Fragment>
+          <h2>Enter the code</h2>
+          <p>We texted a 6-digit code to {normalizePhone(phone)}.</p>
+          <label>Code</label>
+          <input value={code} maxLength={6} inputMode="numeric" onChange={e=>setCode(e.target.value)} placeholder="123456" />
+          <button className="btn" onClick={verifyCode} disabled={sending}>{sending ? 'Checking...' : 'Verify'}</button>
+          <button className="btn ghost small" style={{marginTop:'10px'}} onClick={()=>setStep('phone')}>Use a different number</button>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+function NameStep({onSubmit}){
+  const [name, setName] = useState('');
+  const [touched, setTouched] = useState(false);
+  const nameOk = isValidName(name);
+
+  return (
+    <div className="login-card">
+      <h2>What's your name?</h2>
+      <p>This is what other players will see on slots you post or join.</p>
+      <label>Your name</label>
+      <input value={name} maxLength={40} onChange={e=>setName(e.target.value)} placeholder="e.g. Priya K" />
+      {touched && !nameOk && <div className="field-error">Enter a name (2-40 characters).</div>}
+      <button className="btn" onClick={()=>{ setTouched(true); if(nameOk) onSubmit(name); }}>Continue</button>
+    </div>
+  );
+}
+
+function NewGroupForm({onCancel, onSubmit}){
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [capacity, setCapacity] = useState('4');
+  const today = new Date().toISOString().slice(0,10);
+  const canSubmit = date && time && capacity;
+
+  return (
+    <div className="new-group-card">
+      <h3>Post a court slot</h3>
+      <div className="grid-2">
+        <div>
+          <label>Date</label>
+          <input type="date" min={today} value={date} onChange={e=>setDate(e.target.value)} />
+        </div>
+        <div>
+          <label>Time</label>
+          <input type="time" value={time} onChange={e=>setTime(e.target.value)} />
+        </div>
+      </div>
+      <label>Players needed (incl. you)</label>
+      <select value={capacity} onChange={e=>setCapacity(e.target.value)}>
+        <option value="2">2</option>
+        <option value="4">4</option>
+        <option value="6">6</option>
+        <option value="8">8</option>
+      </select>
+      <div className="hint">Your WhatsApp number stays hidden until the slot fills -- then everyone who joined can see everyone else's number. You can post up to 3 open slots at a time.</div>
+      <div className="group-actions">
+        <button className="btn small" style={{background:'#fff', color:'var(--court-teal)'}} disabled={!canSubmit} onClick={()=>onSubmit({date, time, capacity})}>Post slot</button>
+        <button className="btn ghost small" style={{borderColor:'rgba(255,255,255,0.6)', color:'#fff'}} onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function GroupCard({slot, onJoin, onLeave, onCancel, onReport}){
+  const dateLabel = slot.date ? new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}) : '';
+  const spotsLeft = slot.capacity - Number(slot.member_count);
+
+  return (
+    <div className="group-card">
+      <div className="group-top">
+        <div>
+          <div className="group-when">{dateLabel} &middot; {slot.time && slot.time.slice(0,5)}</div>
+          <div className="group-org">Posted by {slot.organizer_name}{slot.is_organizer ? ' (you)' : ''}</div>
+        </div>
+        <div className={"status-pill " + (slot.is_full ? "full" : "let")}>
+          {slot.is_full ? "Full" : `${spotsLeft} spot${spotsLeft>1?'s':''} left`}
+        </div>
+      </div>
+
+      <div className="shuttle-row">
+        {Array.from({length: slot.capacity}).map((_,i)=>(
+          <div key={i} className={"shuttle" + (i < slot.member_count ? " filled" : "")} />
+        ))}
+      </div>
+
+      <div className="members-line">
+        <b>{slot.member_count}/{slot.capacity}</b> joined: {(slot.member_names || []).join(', ')}
+      </div>
+
+      {slot.is_full && slot.is_member && (
+        <WhatsappReveal slot={slot} />
+      )}
+
+      {slot.is_full && !slot.is_member && (
+        <div className="hint" style={{color:'var(--ink-soft)'}}>This slot is full. Check other slots at this venue.</div>
+      )}
+
+      {!slot.is_full && (
+        <div className="group-actions">
+          {!slot.is_member && <button className="btn small" onClick={onJoin}>Join this slot</button>}
+          {slot.is_member && !slot.is_organizer && <button className="btn ghost small" onClick={onLeave}>Leave</button>}
+        </div>
+      )}
+
+      <div className="group-actions">
+        {slot.is_organizer && <button className="btn danger" onClick={onCancel}>Cancel this slot</button>}
+        {!slot.is_organizer && (
+          <button className="btn ghost small" style={{borderColor:'var(--rule)', color:'var(--ink-soft)'}} onClick={onReport}>Report</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WhatsappReveal({slot}){
+  const [copied, setCopied] = useState(false);
+  const names = slot.member_names || [];
+  const numbers = slot.whatsapps || [];
+  const rosterText = `CourtShare group -- ${slot.date} ${slot.time && slot.time.slice(0,5)}\n` +
+    names.map((n,i)=>`${i+1}. ${n} -- ${numbers[i] || ''}`).join('\n');
+
+  function copyRoster(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(rosterText).then(()=>{
+        setCopied(true);
+        setTimeout(()=>setCopied(false), 2000);
+      });
+    }
+  }
+
+  return (
+    <div className="whatsapp-reveal">
+      <div className="label">Group is full -- everyone's number below</div>
+      {names.map((n,i)=>(
+        <div key={i} style={{fontSize:'13.5px', fontWeight:500, marginBottom:'2px'}}>
+          {n}{numbers[i] ? ` -- ${numbers[i]}` : ''}
+        </div>
+      ))}
+      <button className="btn ghost small" style={{borderColor:'var(--in-green)', color:'var(--in-green)', marginTop:'10px'}} onClick={copyRoster}>
+        {copied ? 'Copied!' : "Copy everyone's numbers"}
+      </button>
+      <div className="hint" style={{color:'#2f6b52'}}>
+        Fastest way to start the chat: open WhatsApp, create a new group, and paste these numbers in.
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
